@@ -1,0 +1,11 @@
+{
+  "name": "Eneco Energy Tracker",
+  "description": "Interactive experience that tracks camera motion to fill a virtual battery, reflecting the energy of the event space.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
