@@ -125,25 +125,29 @@ export default function TDPage() {
   return (
     <main className="min-h-screen bg-gray-950 text-gray-100 flex flex-col font-sans overflow-hidden relative">
       {/* Background gradients */}
-      <div className="absolute -top-[100px] -left-[100px] w-[600px] h-[600px] bg-[#00A9E0] opacity-10 rounded-full blur-[120px]" />
-      <div className="absolute -bottom-[100px] -right-[100px] w-[600px] h-[600px] bg-[#A4D233] opacity-10 rounded-full blur-[120px]" />
+      <div className="absolute -top-[100px] -left-[100px] w-[600px] h-[600px] bg-[#E3003F] opacity-10 rounded-full blur-[120px]" />
+      <div className="absolute -bottom-[100px] -right-[100px] w-[600px] h-[600px] bg-[#FF7000] opacity-10 rounded-full blur-[120px]" />
 
       {/* Header */}
       <header className="h-20 w-full flex items-center justify-between px-6 lg:px-12 z-10 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center h-8 w-8 relative">
+          <div className="flex items-center h-10 w-10 relative mr-1">
             <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
               <defs>
-                <radialGradient id="enecoGrad2" cx="30%" cy="30%" r="70%">
-                  <stop offset="0%" stopColor="#7CC242" />
-                  <stop offset="100%" stopColor="#4A9029" />
+                <radialGradient id="enecoRed2" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#ff5a60" />
+                  <stop offset="100%" stopColor="#d2002e" />
+                </radialGradient>
+                <radialGradient id="enecoOrange2" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#ffb95e" />
+                  <stop offset="100%" stopColor="#e85b00" />
                 </radialGradient>
               </defs>
-              <circle cx="50" cy="55" r="28" fill="url(#enecoGrad2)" />
-              <circle cx="78" cy="42" r="16" fill="url(#enecoGrad2)" />
-              <circle cx="65" cy="85" r="14" fill="url(#enecoGrad2)" />
-              <circle cx="35" cy="22" r="12" fill="url(#enecoGrad2)" />
-              <circle cx="25" cy="6"  r="6"  fill="url(#enecoGrad2)" />
+              <circle cx="35" cy="30" r="11" fill="url(#enecoOrange2)" />
+              <circle cx="55" cy="12" r="6"  fill="url(#enecoRed2)" />
+              <circle cx="68" cy="48" r="15" fill="url(#enecoOrange2)" />
+              <circle cx="62" cy="85" r="8"  fill="url(#enecoRed2)" />
+              <circle cx="38" cy="62" r="22" fill="url(#enecoRed2)" />
             </svg>
           </div>
           <span className="text-2xl font-bold text-white tracking-tight">
@@ -190,28 +194,28 @@ export default function TDPage() {
         <div className="flex flex-col w-full flex-1 max-w-[500px] gap-6 shrink-0 justify-center">
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[24px] h-40 p-5 flex flex-col justify-between shadow-sm">
-              <span className="text-[10px] font-bold text-[#00A9E0] uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] font-bold text-[#E3003F] uppercase tracking-widest flex items-center gap-1">
                 <Activity className="w-3 h-3" /> Active Motion
               </span>
               <div className="flex flex-col gap-1 mt-auto">
                 <div className="font-bold text-white text-3xl">
                   {Math.round(motionLevel)}<span className="text-base font-medium opacity-50 ml-1">/ 100</span>
                 </div>
-                <div className={`text-xs font-medium ${motionLevel > 10 ? 'text-green-400' : 'text-gray-400'}`}>
+                <div className={`text-xs font-medium ${motionLevel > 10 ? 'text-orange-400' : 'text-gray-400'}`}>
                   {motionLevel > 10 ? 'Detecting movement' : 'Standby'}
                 </div>
               </div>
             </div>
 
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[24px] h-40 p-5 flex flex-col justify-between shadow-sm">
-              <span className="text-[10px] font-bold text-[#A4D233] uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] font-bold text-[#FF7000] uppercase tracking-widest flex items-center gap-1">
                 <Mic className="w-3 h-3" /> Room dB
               </span>
               <div className="flex flex-col gap-1 mt-auto">
                 <div className="font-bold text-white text-3xl">
                   {Math.round(audioLevel)}<span className="text-base font-medium opacity-50 ml-1">dB</span>
                 </div>
-                <div className={`text-xs font-medium ${audioLevel > 15 ? 'text-[#A4D233]' : 'text-gray-400'}`}>
+                <div className={`text-xs font-medium ${audioLevel > 15 ? 'text-[#FF7000]' : 'text-gray-400'}`}>
                   {audioLevel > 15 ? 'Active Audience' : 'Quiet'}
                 </div>
               </div>
@@ -253,7 +257,7 @@ export default function TDPage() {
               className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
             >
               <div className="p-6 border-b border-gray-100">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-[#00A9E0] to-[#A4D233] bg-clip-text text-transparent">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-[#E3003F] to-[#FF7000] bg-clip-text text-transparent">
                   WebSocket Settings
                 </h3>
               </div>
