@@ -124,27 +124,36 @@ export default function App() {
   return (
     <main className="min-h-screen bg-gray-950 text-gray-100 flex flex-col font-sans overflow-hidden relative">
       {/* Background Mesh Gradients */}
-      <div className="absolute -top-[100px] -left-[100px] w-[600px] h-[600px] bg-[#00A9E0] opacity-10 rounded-full blur-[120px]"></div>
-      <div className="absolute -bottom-[100px] -right-[100px] w-[600px] h-[600px] bg-[#A4D233] opacity-10 rounded-full blur-[120px]"></div>
+      <div className="absolute -top-[100px] -left-[100px] w-[600px] h-[600px] bg-[#E3003F] opacity-10 rounded-full blur-[120px]"></div>
+      <div className="absolute -bottom-[100px] -right-[100px] w-[600px] h-[600px] bg-[#FF7000] opacity-10 rounded-full blur-[120px]"></div>
 
       {/* Header Navigation */}
       <header className="h-20 w-full flex items-center justify-between px-6 lg:px-12 z-10 shrink-0">
         <div className="flex items-center gap-3">
           {/* Custom Eneco Bubbles Logo */}
-          <div className="flex items-center h-8 w-8 relative">
+          <div className="flex items-center h-10 w-10 relative mr-1">
             <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
-              {/* Eneco Greens: primarily around #46962b for the prominent logo */}
               <defs>
-                <radialGradient id="enecoGrad" cx="30%" cy="30%" r="70%">
-                  <stop offset="0%" stopColor="#7CC242" />
-                  <stop offset="100%" stopColor="#4A9029" />
+                <radialGradient id="enecoRed" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#ff5a60" />
+                  <stop offset="100%" stopColor="#d2002e" />
+                </radialGradient>
+                <radialGradient id="enecoOrange" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#ffb95e" />
+                  <stop offset="100%" stopColor="#e85b00" />
                 </radialGradient>
               </defs>
-              <circle cx="50" cy="55" r="28" fill="url(#enecoGrad)" />
-              <circle cx="78" cy="42" r="16" fill="url(#enecoGrad)" />
-              <circle cx="65" cy="85" r="14" fill="url(#enecoGrad)" />
-              <circle cx="35" cy="22" r="12" fill="url(#enecoGrad)" />
-              <circle cx="25" cy="6" r="6" fill="url(#enecoGrad)" />
+              {/* Eneco Bubbles Layout */}
+              {/* Top-left small orange */}
+              <circle cx="35" cy="30" r="11" fill="url(#enecoOrange)" />
+              {/* Top tiny red */}
+              <circle cx="55" cy="12" r="6" fill="url(#enecoRed)" />
+              {/* Middle-right medium light orange */}
+              <circle cx="68" cy="48" r="15" fill="url(#enecoOrange)" />
+              {/* Bottom tiny red */}
+              <circle cx="62" cy="85" r="8" fill="url(#enecoRed)" />
+              {/* Large bottom-left red */}
+              <circle cx="38" cy="62" r="22" fill="url(#enecoRed)" />
             </svg>
           </div>
           <span className="text-2xl font-bold text-white tracking-tight">Eneco <span className="font-light">Energiser</span></span>
@@ -166,7 +175,7 @@ export default function App() {
           </button>
           <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center gap-2">
             {cameraActive ? (
-                <div className="w-2 h-2 bg-[#A4D233] rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-[#FF7000] rounded-full animate-pulse"></div>
             ) : (
                 <CameraOff className="w-3 h-3 text-red-500" />
             )}
@@ -222,14 +231,14 @@ export default function App() {
                 {/* Movement Trace Lines SVG overlays */}
                 <div className="absolute inset-0 opacity-60 z-10 pointer-events-none">
                   <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <motion.circle cx="30" cy="40" r="8" fill="#00A9E0" filter="blur(8px)" animate={{ cx: [30, 40, 20, 30], cy: [40, 30, 50, 40] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
-                    <motion.circle cx="70" cy="60" r="12" fill="#A4D233" filter="blur(10px)" animate={{ cx: [70, 50, 80, 70], cy: [60, 70, 50, 60] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }} />
+                    <motion.circle cx="30" cy="40" r="8" fill="#E3003F" filter="blur(8px)" animate={{ cx: [30, 40, 20, 30], cy: [40, 30, 50, 40] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
+                    <motion.circle cx="70" cy="60" r="12" fill="#FF7000" filter="blur(10px)" animate={{ cx: [70, 50, 80, 70], cy: [60, 70, 50, 60] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }} />
                     <motion.circle cx="50" cy="20" r="6" fill="white" filter="blur(5px)" animate={{ cx: [50, 60, 40, 50], cy: [20, 30, 10, 20] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} />
                   </svg>
                 </div>
     
                 <div className="absolute bottom-6 left-6 flex items-center gap-3 z-20">
-                  <div className="w-10 h-10 rounded-full border-2 border-[#00A9E0] flex items-center justify-center bg-[#00A9E0]/50 backdrop-blur-md">
+                  <div className="w-10 h-10 rounded-full border-2 border-[#E3003F] flex items-center justify-center bg-[#E3003F]/50 backdrop-blur-md">
                     <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                   </div>
                   <span className="text-white font-medium text-sm tracking-wide uppercase shadow-black drop-shadow-md">
@@ -254,27 +263,27 @@ export default function App() {
           {/* Metrics Grid */}
           <motion.div layout className={`grid grid-cols-2 ${showCameraPanel ? 'gap-4' : 'gap-4 md:gap-8'} shrink-0`}>
             <motion.div layout className={`bg-white/5 backdrop-blur-xl border border-white/10 rounded-[24px] flex flex-col justify-between shadow-sm overflow-hidden ${showCameraPanel ? 'h-40 p-5' : 'h-24 p-5 md:p-6'}`}>
-              <span className="text-[10px] font-bold text-[#00A9E0] uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] font-bold text-[#E3003F] uppercase tracking-widest flex items-center gap-1">
                 <Activity className="w-3 h-3" /> Active Motion
               </span>
               <div className={`flex ${showCameraPanel ? 'flex-col gap-1' : 'flex-row items-end justify-between items-center'} mt-auto`}>
                 <div className={`font-bold text-white ${showCameraPanel ? 'text-3xl' : 'text-2xl'}`}>
                   {Math.round(motionLevel)}<span className="text-base font-medium opacity-50 ml-1">/ 100</span>
                 </div>
-                <div className={`text-xs font-medium ${motionLevel > 10 ? 'text-green-400' : 'text-gray-400'} ${showCameraPanel ? '' : 'mb-1 truncate ml-2'}`}>
+                <div className={`text-xs font-medium ${motionLevel > 10 ? 'text-orange-400' : 'text-gray-400'} ${showCameraPanel ? '' : 'mb-1 truncate ml-2'}`}>
                     {motionLevel > 10 ? (showCameraPanel ? 'Detecting movement' : 'Detecting') : 'Standby'}
                 </div>
               </div>
             </motion.div>
             <motion.div layout className={`bg-white/5 backdrop-blur-xl border border-white/10 rounded-[24px] flex flex-col justify-between shadow-sm overflow-hidden ${showCameraPanel ? 'h-40 p-5' : 'h-24 p-5 md:p-6'}`}>
-              <span className="text-[10px] font-bold text-[#A4D233] uppercase tracking-widest flex items-center gap-1">
+              <span className="text-[10px] font-bold text-[#FF7000] uppercase tracking-widest flex items-center gap-1">
                  <Mic className="w-3 h-3" /> Room dB
               </span>
               <div className={`flex ${showCameraPanel ? 'flex-col gap-1' : 'flex-row items-end justify-between items-center'} mt-auto`}>
                 <div className={`font-bold text-white ${showCameraPanel ? 'text-3xl' : 'text-2xl'}`}>
                     {Math.round(audioLevel)}<span className="text-base font-medium opacity-50 ml-1">dB</span>
                 </div>
-                <div className={`text-xs font-medium ${audioLevel > 15 ? 'text-[#A4D233]' : 'text-gray-400'} ${showCameraPanel ? '' : 'mb-1 truncate ml-2'}`}>
+                <div className={`text-xs font-medium ${audioLevel > 15 ? 'text-[#FF7000]' : 'text-gray-400'} ${showCameraPanel ? '' : 'mb-1 truncate ml-2'}`}>
                     {audioLevel > 15 ? (showCameraPanel ? 'Active Audience' : 'Active') : 'Quiet'}
                 </div>
               </div>
@@ -300,7 +309,7 @@ export default function App() {
               className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-[#00A9E0] to-[#A4D233] bg-clip-text text-transparent">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-[#E3003F] to-[#FF7000] bg-clip-text text-transparent">
                   Device Settings
                 </h3>
                 <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -310,12 +319,12 @@ export default function App() {
               <div className="p-6 space-y-6">
                 <div className="space-y-3">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <Mic className="w-4 h-4 text-[#00A9E0]" /> Microphone
+                    <Mic className="w-4 h-4 text-[#E3003F]" /> Microphone
                   </label>
                   <select 
                     value={audioDeviceId || ''} 
                     onChange={(e) => setAudioDeviceId(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-[#00A9E0] focus:border-[#00A9E0] block p-3 transition-colors"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-[#E3003F] focus:border-[#E3003F] block p-3 transition-colors"
                   >
                     {!audioDeviceId && <option value="">Default (System Chosen)</option>}
                     {devices.filter(d => d.kind === 'audioinput').map(device => (
@@ -328,12 +337,12 @@ export default function App() {
                 
                 <div className="space-y-3">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <CameraOff className="w-4 h-4 text-[#A4D233]" /> Camera
+                    <CameraOff className="w-4 h-4 text-[#FF7000]" /> Camera
                   </label>
                   <select 
                     value={videoDeviceId || ''} 
                     onChange={(e) => setVideoDeviceId(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-[#00A9E0] focus:border-[#00A9E0] block p-3 transition-colors"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl focus:ring-[#FF7000] focus:border-[#FF7000] block p-3 transition-colors"
                   >
                      {!videoDeviceId && <option value="">Default (System Chosen)</option>}
                     {devices.filter(d => d.kind === 'videoinput').map(device => (
