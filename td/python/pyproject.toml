@@ -1,0 +1,23 @@
+[project]
+name = "eneco-person-detect"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "ultralytics>=8.3",
+    "opencv-python>=4.10",
+    "python-osc>=1.8",
+    "SpoutGL>=0.1.1",
+    "PyOpenGL>=3.1",
+    "numpy>=1.26",
+    "torch>=2.5",
+    "torchvision>=0.20",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
