@@ -30,14 +30,14 @@ export function SoundParticles({ intensity, isFilling = false }: { intensity: nu
          const angle = (d / dotsPerRing) * Math.PI * 2 + (r * 0.05);
          const baseRadius = 80 + (r / rings) * 600; 
          
-         let color = [124, 194, 66]; // Eneco Green default
+         let color = [227, 0, 63]; // Eneco Red default
          const colorBand = Math.sin(r * 0.2 + d * 0.1);
          if (colorBand > 0.3) {
-             color = [124, 194, 66]; // Green
+             color = [227, 0, 63]; // Red
          } else if (colorBand < -0.3) {
-             color = [255, 204, 0]; // Yellow
+             color = [255, 112, 0]; // Orange
          } else {
-             color = [184, 222, 40]; // Light Green/Yellow-Green
+             color = [255, 50, 0]; // Red-Orange blend
          }
          
          particles.push({ 

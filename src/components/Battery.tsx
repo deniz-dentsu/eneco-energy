@@ -21,15 +21,11 @@ function PlasmaField({ level, intensity = 0, motion = 0, isSurging = false }: { 
     
     // Optimal density for 3D particles matching outside style
     const pointsCount = 400;
-    // Helper to interpolate battery color (Red -> Orange -> Green)
+    // Helper to interpolate battery color (Red -> Orange instead of Green)
     const getInterpolatedColor = (lvl: number) => {
-        if (lvl < 50) {
-            const t = lvl / 50;
-            return [227 + (242 - 227) * t, 0 + (144 - 0) * t, 43 + (0 - 43) * t];
-        } else {
-            const t = (lvl - 50) / 50;
-            return [242 + (124 - 242) * t, 144 + (194 - 144) * t, 0 + (66 - 0) * t];
-        }
+        // Interpolate between Eneco Red (227, 0, 63) and Orange (255, 112, 0)
+        const t = Math.max(0, Math.min(100, lvl)) / 100;
+        return [227 + (255 - 227) * t, 0 + (112 - 0) * t, 63 + (0 - 63) * t];
     };
 
     const particles = Array.from({ length: pointsCount }).map((_, i) => {
@@ -174,20 +170,15 @@ export function Battery({ level, audioLevel = 0, motionLevel = 0, isSurging = fa
   const clampedLevel = Math.max(0, Math.min(100, level));
   
   const getOuterColors = (lvl: number) => {
-      if (lvl < 33) return { 
-          baseBg: 'linear-gradient(to right, rgba(227,0,43,0.5), rgba(40,0,10,0.3))', 
-          shadow: 'rgba(227,0,43,0.7)',
-          rgbStart: [227, 0, 43]
-      }; 
-      if (lvl < 66) return { 
-          baseBg: 'linear-gradient(to right, rgba(242,144,0,0.5), rgba(40,25,0,0.3))', 
-          shadow: 'rgba(242,144,0,0.7)',
-          rgbStart: [242, 144, 0]
+      if (lvl < 50) return { 
+          baseBg: 'linear-gradient(to right, rgba(227,0,63,0.5), rgba(40,0,10,0.3))', 
+          shadow: 'rgba(227,0,63,0.7)',
+          rgbStart: [227, 0, 63]
       }; 
       return { 
-          baseBg: 'linear-gradient(to right, rgba(124,194,66,0.5), rgba(20,40,10,0.3))', 
-          shadow: 'rgba(124,194,66,0.7)',
-          rgbStart: [124, 194, 66]
+          baseBg: 'linear-gradient(to right, rgba(255,112,0,0.5), rgba(40,15,0,0.3))', 
+          shadow: 'rgba(255,112,0,0.7)',
+          rgbStart: [255, 112, 0]
       }; 
   };
   const colors = getOuterColors(clampedLevel);
