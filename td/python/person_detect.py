@@ -3,6 +3,7 @@ TouchDesigner (Spout) -> YOLO person detection -> OSC -> TouchDesigner
 """
 
 import array
+import argparse
 from itertools import repeat
 import cv2
 import numpy as np
@@ -24,7 +25,7 @@ IMG_SIZE = 640
 OSC_HOST = "127.0.0.1"
 OSC_PORT = 7000          # TDのOSC In CHOPのポートに合わせる
 
-SHOW_PREVIEW = True
+SHOW_PREVIEW = False
 
 
 def send_detections(osc: udp_client.SimpleUDPClient, boxes: np.ndarray, frame_w: int, frame_h: int):
@@ -53,6 +54,11 @@ def send_detections(osc: udp_client.SimpleUDPClient, boxes: np.ndarray, frame_w:
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--preview", action="store_true", help="OpenCVプレビューウィンドウを表示する")
+    args = parser.parse_args()
+    show_preview = args.preview or SHOW_PREVIEW
+
     model = YOLO(YOLO_MODEL)
     osc = udp_client.SimpleUDPClient(OSC_HOST, OSC_PORT)
 
@@ -97,7 +103,7 @@ def main():
 
                 send_detections(osc, boxes, frame_w, frame_h)
 
-                if SHOW_PREVIEW:
+                if show_preview:
                     display = frame_bgr.copy()
                     for box in boxes:
                         x1, y1, x2, y2 = box.astype(int)
