@@ -2,13 +2,14 @@
 TouchDesigner (Spout) -> YOLO person detection -> OSC -> TouchDesigner
 """
 
+import array
+from itertools import repeat
 import cv2
 import numpy as np
 from ultralytics import YOLO
 from pythonosc import udp_client
 import SpoutGL
-import OpenGL.GL as gl
-import ctypes
+from OpenGL import GL
 
 # =========================
 # 設定
@@ -55,75 +56,70 @@ def main():
     model = YOLO(YOLO_MODEL)
     osc = udp_client.SimpleUDPClient(OSC_HOST, OSC_PORT)
 
-    receiver = SpoutGL.SpoutReceiver()
-    receiver.setReceiverName(SPOUT_SENDER_NAME)
-
     print(f"Waiting for Spout sender: '{SPOUT_SENDER_NAME}'")
     print(f"OSC -> {OSC_HOST}:{OSC_PORT}")
 
-    frame_w, frame_h = 0, 0
-    pixel_buf = None
+    with SpoutGL.SpoutReceiver() as receiver:
+        receiver.setReceiverName(SPOUT_SENDER_NAME)
 
-    while True:
-        # Spoutからフレーム受信
-        if not receiver.isConnected():
-            receiver.receiveTexture()
-            cv2.waitKey(10)
-            continue
+        buffer = None
+        frame_w, frame_h = 0, 0
 
-        w = receiver.getSenderWidth()
-        h = receiver.getSenderHeight()
+        while True:
+            result = receiver.receiveImage(buffer, GL.GL_RGBA, False, 0)
 
-        if w != frame_w or h != frame_h:
-            frame_w, frame_h = w, h
-            pixel_buf = (ctypes.c_ubyte * (w * h * 4))()
-            print(f"Connected: {SPOUT_SENDER_NAME} ({w}x{h})")
+            # サイズ変更 or 初回接続
+            if receiver.isUpdated():
+                frame_w = receiver.getSenderWidth()
+                frame_h = receiver.getSenderHeight()
+                buffer = array.array('B', repeat(0, frame_w * frame_h * 4))
+                print(f"Connected: {SPOUT_SENDER_NAME} ({frame_w}x{frame_h})")
 
-        receiver.receiveImage(pixel_buf, gl.GL_RGBA, False, 0)
+            if buffer and result and not SpoutGL.helpers.isBufferEmpty(buffer):
+                frame = np.frombuffer(buffer, dtype=np.uint8).reshape((frame_h, frame_w, 4))
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
 
-        frame = np.frombuffer(pixel_buf, dtype=np.uint8).reshape((h, w, 4))
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                # YOLO person検出 (class 0 = person)
+                results = model.predict(
+                    frame_bgr,
+                    classes=[0],
+                    conf=CONF_THRES,
+                    imgsz=IMG_SIZE,
+                    device=YOLO_DEVICE,
+                    verbose=False,
+                )
 
-        # YOLO person検出 (class 0 = person)
-        results = model.predict(
-            frame,
-            classes=[0],
-            conf=CONF_THRES,
-            imgsz=IMG_SIZE,
-            device=YOLO_DEVICE,
-            verbose=False,
-        )
+                boxes = np.empty((0, 4), dtype=np.float32)
+                if results and results[0].boxes is not None:
+                    xyxy = results[0].boxes.xyxy
+                    if xyxy is not None and len(xyxy) > 0:
+                        boxes = xyxy.cpu().numpy()
 
-        boxes = np.empty((0, 4), dtype=np.float32)
-        if results and results[0].boxes is not None:
-            xyxy = results[0].boxes.xyxy
-            if xyxy is not None and len(xyxy) > 0:
-                boxes = xyxy.cpu().numpy()
+                send_detections(osc, boxes, frame_w, frame_h)
 
-        send_detections(osc, boxes, frame_w, frame_h)
+                if SHOW_PREVIEW:
+                    display = frame_bgr.copy()
+                    for box in boxes:
+                        x1, y1, x2, y2 = box.astype(int)
+                        cv2.rectangle(display, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(
+                        display,
+                        f"persons: {len(boxes)}",
+                        (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.9,
+                        (0, 255, 0),
+                        2,
+                    )
+                    cv2.imshow("Person Detect", display)
 
-        if SHOW_PREVIEW:
-            display = frame.copy()
-            for box in boxes:
-                x1, y1, x2, y2 = box.astype(int)
-                cv2.rectangle(display, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(
-                display,
-                f"persons: {len(boxes)}",
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                (0, 255, 0),
-                2,
-            )
-            cv2.imshow("Person Detect", display)
+            key = cv2.waitKey(1) & 0xFF
+            if key == 27 or key == ord("q"):
+                break
 
-        key = cv2.waitKey(1) & 0xFF
-        if key == 27 or key == ord("q"):
-            break
+            receiver.waitFrameSync(SPOUT_SENDER_NAME, 10000)
 
     cv2.destroyAllWindows()
-    receiver.releaseReceiver()
 
 
 if __name__ == "__main__":
