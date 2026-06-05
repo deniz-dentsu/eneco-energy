@@ -5,7 +5,7 @@ import { CameraOff, Camera, Mic, Settings as SettingsIcon, Activity, X } from 'l
 import { motion, AnimatePresence } from 'motion/react';
 import { SoundParticles } from './components/SoundParticles';
 import { SurgeSparks } from './components/SurgeSparks';
-import { FigmaCanvas, FigmaBox } from './components/FigmaCanvas';
+import { FigmaCanvas, FigmaBox, useCanvasViewport } from './components/FigmaCanvas';
 import { GaugeChart } from './components/GaugeChart';
 
 import imgActiveMotion from './images/Active motion.png';
@@ -23,7 +23,7 @@ export default function App() {
   const { motionLevel, audioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
   const [batteryLevel, setBatteryLevel] = useState(0);
   // let [batteryLevel, setBatteryLevel] = useState(0); // test
-  // batteryLevel = 100; // test
+  // batteryLevel = 50; // test
   const [isSurging, setIsSurging] = useState(false);
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
@@ -95,22 +95,49 @@ export default function App() {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
+  const viewport = useCanvasViewport();
+
+  // Background: 0%=#EA714F, 50%=gradient(#E5384C→#EA714F), 100%=#E5384C
+  const red = [229, 56, 76];   // #E5384C
+  const org = [234, 113, 79];  // #EA714F
+  const t = batteryLevel / 100;
+  // Left color: org→red over 0-50%, then stays red
+  const tL = Math.min(1, t * 2);
+  const leftColor = `rgb(${(org[0] + (red[0]-org[0])*tL)|0},${(org[1] + (red[1]-org[1])*tL)|0},${(org[2] + (red[2]-org[2])*tL)|0})`;
+  // Right color: stays org over 0-50%, then org→red over 50-100%
+  const tR = Math.max(0, t * 2 - 1);
+  const rightColor = `rgb(${(org[0] + (red[0]-org[0])*tR)|0},${(org[1] + (red[1]-org[1])*tR)|0},${(org[2] + (red[2]-org[2])*tR)|0})`;
+  const bgGradient = `linear-gradient(to right, ${leftColor}, ${rightColor})`;
+
   return (
     <>
-      <FigmaCanvas className="bg-gray-950" 
+      <FigmaCanvas
         // debugFill="rgba(255,0,0,0.5)"
       >
-
-        {/* ── Background gradients ── */}
-        {/* <FigmaBox x={-100} y={-100} w={700} h={700} style={{ borderRadius: '50%', background: '#E3003F', opacity: 0.12, filter: 'blur(120px)', pointerEvents: 'none' }} />
-        <FigmaBox x={1320} y={480} w={700} h={700} style={{ borderRadius: '50%', background: '#FF7000', opacity: 0.12, filter: 'blur(120px)', pointerEvents: 'none' }} /> */}
-        <FigmaBox x={0} y={0} w={1920} h={1080} style={{background: 'linear-gradient(to right, #E5384C, #EA714F)'}}></FigmaBox>
+        {/* Background — sized to exact viewport in canvas-space so gradient isn't stretched.
+            Must stay inside canvas to keep mix-blend-mode working in the same stacking context. */}
+        <div style={{
+          position: 'absolute',
+          left: viewport.x,
+          top: viewport.y,
+          width: viewport.w,
+          height: viewport.h,
+          background: bgGradient,
+          zIndex: 0,
+        }} />
 
         {/* ── SoundParticles / SurgeSparks (full canvas layer) ── */}
-        <FigmaBox x={0} y={0} w={1920} h={1080}>
+        <div style={{
+          position: 'absolute',
+          left: viewport.x,
+          top: viewport.y,
+          width: viewport.w,
+          height: viewport.h,
+          zIndex: 0,
+        }}>
           <SoundParticles intensity={audioLevel} isFilling={motionLevel > 5 && audioLevel > 5} />
           <SurgeSparks active={isSurging} />
-        </FigmaBox>
+        </div>
 
         {/* ── Battery: FigmaCanvas直下に置き、座標系を統一 ── */}
         <Battery level={batteryLevel} audioLevel={audioLevel} motionLevel={motionLevel} isSurging={isSurging} />
