@@ -136,16 +136,23 @@ export function Battery({ level, audioLevel = 0, motionLevel = 0, isSurging = fa
         <img src={imgBattery} style={{ width: '100%', height: '100%', mixBlendMode: 'multiply' }} />
       </FigmaBox>
 
+      <div style={{
+        filter: 'blur(10px)',
+      }}>
+        <FigmaBox x={389} y={346} w={1099} h={388} className="rounded-[400px] p-2 overflow-hidden">
+          {/* Glow layer — outside overflow-hidden so filter doesn't break blend modes */}
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 400, 
+            // filter: 'blur(10px)',
+            pointerEvents: 'none' }}>
+            <motion.div
+              style={{ position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 400, background: colors.baseBg }}
+              animate={{ width: `${clampedLevel}%` }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
+            />
+          </div>
+        </FigmaBox>
+      </div>
       <FigmaBox x={389} y={346} w={1099} h={388} className="rounded-[400px] p-2">
-        {/* Glow layer — outside overflow-hidden so filter doesn't break blend modes */}
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, borderRadius: 400, filter: 'blur(10px)', pointerEvents: 'none' }}>
-          <motion.div
-            style={{ position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 400, background: colors.baseBg }}
-            animate={{ width: `${clampedLevel}%` }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
-          />
-        </div>
-
         {/* Fill container */}
         <div className="relative w-full h-full rounded-[400px] overflow-hidden">
           <motion.div
