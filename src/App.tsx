@@ -20,9 +20,44 @@ export default function App() {
   const [showCameraPanel, setShowCameraPanel] = useState(true);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
-  const { motionLevel, audioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
+  const { motionLevel: rawMotionLevel, audioLevel: rawAudioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
   const [batteryLevel, setBatteryLevel] = useState(0);
   const [isSurging, setIsSurging] = useState(false);
+
+  // Operator params (via BroadcastChannel — active only when operator window is open)
+  const [motionGain, setMotionGain] = useState(0.06);
+  const [audioGain, setAudioGain] = useState(0.06);
+  const [manualMotion, setManualMotion] = useState<number | null>(null);
+  const [manualAudio, setManualAudio] = useState<number | null>(null);
+
+  const motionLevel = manualMotion ?? rawMotionLevel;
+  const audioLevel = manualAudio ?? rawAudioLevel;
+
+  const motionGainRef = useRef(motionGain);
+  const audioGainRef = useRef(audioGain);
+  useEffect(() => { motionGainRef.current = motionGain; }, [motionGain]);
+  useEffect(() => { audioGainRef.current = audioGain; }, [audioGain]);
+
+  // BroadcastChannel: receive operator commands, broadcast state
+  useEffect(() => {
+    const ch = new BroadcastChannel('eneco-operator');
+    ch.onmessage = (e) => {
+      if (e.data.type === 'params') {
+        setMotionGain(e.data.motionGain);
+        setAudioGain(e.data.audioGain);
+      } else if (e.data.type === 'manual') {
+        setManualMotion(e.data.motionLevel);
+        setManualAudio(e.data.audioLevel);
+      } else if (e.data.type === 'manual-off') {
+        setManualMotion(null);
+        setManualAudio(null);
+      }
+    };
+    const interval = setInterval(() => {
+      ch.postMessage({ type: 'state', batteryLevel, motionLevel, audioLevel });
+    }, 100);
+    return () => { ch.close(); clearInterval(interval); };
+  }, [batteryLevel, motionLevel, audioLevel]);
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
   const lastSurgeTimeRef = useRef(0);
@@ -93,8 +128,8 @@ export default function App() {
 
         // Requires more movement and audio to build up charge effectively
         if (currentMotionLevel > 10 || currentAudioLevel > 10) {
-            let baseMotionGain = currentMotionLevel * 0.04;
-            let baseAudioGain = currentAudioLevel * 0.04;
+            let baseMotionGain = currentMotionLevel * motionGainRef.current;
+            let baseAudioGain = currentAudioLevel * audioGainRef.current;
             // Synergy: rewarded for the lower of the two (encourages balance & crowd activity)
             let synergyBonus = Math.min(currentMotionLevel, currentAudioLevel) * 0.12;
 
