@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useMotionDetection } from './hooks/useMotionDetection';
 import { Battery } from './components/Battery';
-import { CameraOff, Camera, Mic, Settings as SettingsIcon, Activity, X } from 'lucide-react';
+import { CameraOff, Camera, Mic, Settings as SettingsIcon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SoundParticles } from './components/SoundParticles';
 import { SurgeSparks } from './components/SurgeSparks';
@@ -22,8 +22,6 @@ export default function App() {
 
   const { motionLevel, audioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
   const [batteryLevel, setBatteryLevel] = useState(0);
-  // let [batteryLevel, setBatteryLevel] = useState(0); // test
-  // batteryLevel = 50; // test
   const [isSurging, setIsSurging] = useState(false);
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
@@ -97,65 +95,48 @@ export default function App() {
 
   const viewport = useCanvasViewport();
 
-  // Background: 0%=#EA714F, 50%=gradient(#E5384C→#EA714F), 100%=#E5384C
-  const red = [229, 56, 76];   // #E5384C
-  const org = [234, 113, 79];  // #EA714F
+  // Background: 0%=#EA714F(org), 50%=gradient(#E5384C→#EA714F), 100%=#E5384C(red)
+  const red = [229, 56, 76];
+  const org = [234, 113, 79];
   const t = batteryLevel / 100;
-  // Left color: org→red over 0-50%, then stays red
   const tL = Math.min(1, t * 2);
-  const leftColor = `rgb(${(org[0] + (red[0]-org[0])*tL)|0},${(org[1] + (red[1]-org[1])*tL)|0},${(org[2] + (red[2]-org[2])*tL)|0})`;
-  // Right color: stays org over 0-50%, then org→red over 50-100%
   const tR = Math.max(0, t * 2 - 1);
-  const rightColor = `rgb(${(org[0] + (red[0]-org[0])*tR)|0},${(org[1] + (red[1]-org[1])*tR)|0},${(org[2] + (red[2]-org[2])*tR)|0})`;
-  const bgGradient = `linear-gradient(to right, ${leftColor}, ${rightColor})`;
+  const lc = (i: number) => (org[i] + (red[i] - org[i]) * tL) | 0;
+  const rc = (i: number) => (org[i] + (red[i] - org[i]) * tR) | 0;
+  const bgGradient = `linear-gradient(to right, rgb(${lc(0)},${lc(1)},${lc(2)}), rgb(${rc(0)},${rc(1)},${rc(2)}))`;
 
   return (
     <>
-      <FigmaCanvas
-        // debugFill="rgba(255,0,0,0.5)"
-      >
-        {/* Background — sized to exact viewport in canvas-space so gradient isn't stretched.
-            Must stay inside canvas to keep mix-blend-mode working in the same stacking context. */}
+      <FigmaCanvas>
         <div style={{
           position: 'absolute',
-          left: viewport.x,
-          top: viewport.y,
-          width: viewport.w,
-          height: viewport.h,
+          left: viewport.x, top: viewport.y,
+          width: viewport.w, height: viewport.h,
           background: bgGradient,
           zIndex: 0,
         }} />
 
-        {/* ── SoundParticles / SurgeSparks (full canvas layer) ── */}
         <div style={{
           position: 'absolute',
-          left: viewport.x,
-          top: viewport.y,
-          width: viewport.w,
-          height: viewport.h,
+          left: viewport.x, top: viewport.y,
+          width: viewport.w, height: viewport.h,
           zIndex: 0,
         }}>
           <SoundParticles intensity={audioLevel} isFilling={motionLevel > 5 && audioLevel > 5} />
           <SurgeSparks active={isSurging} />
         </div>
 
-        {/* ── Battery: FigmaCanvas直下に置き、座標系を統一 ── */}
         <Battery level={batteryLevel} audioLevel={audioLevel} motionLevel={motionLevel} isSurging={isSurging} />
 
         <FigmaBox x={637} y={783} w={611} h={49}>
-          <img src={imgSpaceEnergyLevel} style={{width: '100%', height: '100%'}} />
+          <img src={imgSpaceEnergyLevel} style={{ width: '100%', height: '100%' }} />
         </FigmaBox>
 
-        {/* ── Header: Logo (x:44 y:36) ── */}
-        <FigmaBox x={60} y={52} w={352} h={105} style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 20 }}
-          // debugFill='yellow'
-        >
-          <img src={imgLogo} style={{width: '100%', height: '100%'}} />
+        <FigmaBox x={60} y={52} w={352} h={105} style={{ zIndex: 20 }}>
+          <img src={imgLogo} style={{ width: '100%', height: '100%' }} />
         </FigmaBox>
 
-        {/* ── Header: Controls (x:1756 y:36) ── */}
         <FigmaBox x={1676} y={36} w={200} h={64} style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 20 }}>
-          {/* Live indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999 }}>
             {cameraActive
               ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FF7000', animation: 'pulse 2s infinite' }} />
@@ -177,7 +158,6 @@ export default function App() {
           </button>
         </FigmaBox>
 
-        {/* ── Camera Preview: top-right (x:1480 y:120) ── */}
         <AnimatePresence>
           {showCameraPanel && (
             <FigmaBox x={1480} y={120} w={400} h={225} style={{ zIndex: 20 }}>
@@ -189,8 +169,6 @@ export default function App() {
               >
                 <video ref={uiVideoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6, mixBlendMode: 'luminosity' }} />
                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.15), transparent)', pointerEvents: 'none' }} />
-
-                {/* Animated blobs */}
                 <div style={{ position: 'absolute', inset: 0, opacity: 0.6, pointerEvents: 'none' }}>
                   <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <motion.circle cx="30" cy="40" r="8" fill="#E3003F" filter="blur(8px)" animate={{ cx: [30, 40, 20, 30], cy: [40, 30, 50, 40] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
@@ -198,7 +176,6 @@ export default function App() {
                     <motion.circle cx="50" cy="20" r="6" fill="white" filter="blur(5px)" animate={{ cx: [50, 60, 40, 50], cy: [20, 30, 10, 20] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} />
                   </svg>
                 </div>
-
                 <div style={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', alignItems: 'center', gap: 8, zIndex: 10 }}>
                   <div style={{ width: 24, height: 24, borderRadius: '50%', border: '1.5px solid #E3003F', background: 'rgba(227,0,63,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 2s infinite' }} />
@@ -207,7 +184,6 @@ export default function App() {
                     {cameraActive ? 'Motion Tracking' : 'Waiting...'}
                   </span>
                 </div>
-
                 {cameraActive && (
                   <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}>
                     <span style={{ padding: '2px 8px', background: '#ef4444', fontSize: 10, fontWeight: 700, color: '#fff', borderRadius: 4, animation: 'pulse 2s infinite' }}>LIVE REC</span>
@@ -223,29 +199,22 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* ── Active Motion gauge (x:80 y:730) ── */}
-        <FigmaBox x={445} y={832} w={364} h={364} style={{ zIndex: 20 }}
-        // debugFill='yellow'
-        >
+        <FigmaBox x={445} y={832} w={364} h={364} style={{ zIndex: 20 }}>
           <GaugeChart value={motionLevel} />
         </FigmaBox>
-
         <FigmaBox x={100} y={835} w={427} h={49} style={{ zIndex: 21 }}>
           <img src={imgActiveMotion} style={{ width: '100%', height: '100%' }} />
         </FigmaBox>
 
-        {/* ── Room dB gauge (x:1490 y:730) ── */}
         <FigmaBox x={1066} y={832} w={364} h={364} style={{ zIndex: 20 }}>
           <GaugeChart value={audioLevel} />
         </FigmaBox>
-
         <FigmaBox x={1452} y={848} w={238} h={49} style={{ zIndex: 21 }}>
           <img src={imgRoomDB} style={{ width: '100%', height: '100%' }} />
         </FigmaBox>
 
       </FigmaCanvas>
 
-      {/* ── Settings Modal (outside canvas, uses viewport coords) ── */}
       <AnimatePresence>
         {showSettings && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
