@@ -15,6 +15,7 @@ export default function OperatorApp() {
   const ch = useRef<BroadcastChannel | null>(null);
 
   const [connected, setConnected] = useState(false);
+  const [multipleWindows, setMultipleWindows] = useState(false);
   const [mainState, setMainState] = useState<MainState>({ batteryLevel: 0, motionLevel: 0, audioLevel: 0 });
 
   const [motionGain, setMotionGain] = useState(DEFAULT_MOTION_GAIN);
@@ -36,10 +37,21 @@ export default function OperatorApp() {
       if (e.data.type === 'state') {
         setMainState(e.data);
         setConnected(true);
+      } else if (e.data.type === 'operator-open') {
+        // Another operator window just opened
+        setMultipleWindows(true);
+        // Announce back so the other window also detects the conflict
+        channel.postMessage({ type: 'operator-open' });
       }
     };
 
-    return () => channel.close();
+    // Announce this window's presence to detect duplicates
+    channel.postMessage({ type: 'operator-open' });
+
+    // Heartbeat: notify main window that operator is alive
+    const ping = setInterval(() => channel.postMessage({ type: 'ping' }), 500);
+
+    return () => { channel.close(); clearInterval(ping); };
   }, []);
 
   // Send params whenever they change (only when connected)
@@ -83,8 +95,25 @@ export default function OperatorApp() {
   const fieldX = manualMotion / 100;
   const fieldY = 1 - manualAudio / 100;
 
+  const bg = manualMode ? '#E5384C' : '#111';
+
   return (
-    <div style={{ minHeight: '100vh', background: '#111', color: '#fff', fontFamily: 'Inter, sans-serif', padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div style={{ minHeight: '100vh', background: bg, color: '#fff', fontFamily: 'Inter, sans-serif', padding: 32, display: 'flex', flexDirection: 'column', gap: 32, transition: 'background 0.3s' }}>
+
+      {/* Multiple windows warning */}
+      {multipleWindows && (
+        <div style={{ background: '#7f1d1d', border: '1px solid #ef4444', borderRadius: 12, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 600 }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          Multiple Operator windows are open. Unexpected behavior may occur.
+        </div>
+      )}
+
+      {/* Manual mode banner */}
+      {manualMode && (
+        <div style={{ background: '#E5384C', borderRadius: 12, padding: '10px 20px', textAlign: 'center', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          ⚡ Manual Mode Active
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -122,7 +151,7 @@ export default function OperatorApp() {
               <span style={{ fontSize: 14, fontWeight: 700, color: '#FFD87D', fontVariantNumeric: 'tabular-nums' }}>{value.toFixed(3)}</span>
             </div>
             <input
-              type="range" min={0} max={0.2} step={0.001}
+              type="range" min={0} max={0.6} step={0.001}
               value={value}
               onChange={(e) => setter(parseFloat(e.target.value))}
               style={{ width: '100%', accentColor: '#FFD87D' }}
@@ -130,7 +159,7 @@ export default function OperatorApp() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
               <span>0</span>
               <span style={{ color: '#4b5563' }}>default: {DEFAULT_MOTION_GAIN}</span>
-              <span>0.2</span>
+              <span>0.6</span>
             </div>
           </div>
         ))}

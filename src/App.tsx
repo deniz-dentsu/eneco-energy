@@ -38,11 +38,30 @@ export default function App() {
   useEffect(() => { motionGainRef.current = motionGain; }, [motionGain]);
   useEffect(() => { audioGainRef.current = audioGain; }, [audioGain]);
 
-  // BroadcastChannel: receive operator commands, broadcast state
+  // Refs for values needed inside the BroadcastChannel interval (avoids stale closures)
+  const batteryLevelRef = useRef(batteryLevel);
+  const motionLevelRef2 = useRef(motionLevel);
+  const audioLevelRef2 = useRef(audioLevel);
+  useEffect(() => { batteryLevelRef.current = batteryLevel; }, [batteryLevel]);
+  useEffect(() => { motionLevelRef2.current = motionLevel; }, [motionLevel]);
+  useEffect(() => { audioLevelRef2.current = audioLevel; }, [audioLevel]);
+
+  // BroadcastChannel: created once, uses refs to avoid stale closures
   useEffect(() => {
     const ch = new BroadcastChannel('eneco-operator');
+    let lastPingAt = 0;
+
+    const resetOperator = () => {
+      setMotionGain(0.06);
+      setAudioGain(0.06);
+      setManualMotion(null);
+      setManualAudio(null);
+    };
+
     ch.onmessage = (e) => {
-      if (e.data.type === 'params') {
+      if (e.data.type === 'ping') {
+        lastPingAt = Date.now();
+      } else if (e.data.type === 'params') {
         setMotionGain(e.data.motionGain);
         setAudioGain(e.data.audioGain);
       } else if (e.data.type === 'manual') {
@@ -53,11 +72,17 @@ export default function App() {
         setManualAudio(null);
       }
     };
+
     const interval = setInterval(() => {
-      ch.postMessage({ type: 'state', batteryLevel, motionLevel, audioLevel });
+      ch.postMessage({ type: 'state', batteryLevel: batteryLevelRef.current, motionLevel: motionLevelRef2.current, audioLevel: audioLevelRef2.current });
+      if (lastPingAt > 0 && Date.now() - lastPingAt > 1500) {
+        resetOperator();
+        lastPingAt = 0;
+      }
     }, 100);
+
     return () => { ch.close(); clearInterval(interval); };
-  }, [batteryLevel, motionLevel, audioLevel]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
   const lastSurgeTimeRef = useRef(0);
