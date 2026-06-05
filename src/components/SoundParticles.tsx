@@ -30,15 +30,7 @@ export function SoundParticles({ intensity, isFilling = false }: { intensity: nu
          const angle = (d / dotsPerRing) * Math.PI * 2 + (r * 0.05);
          const baseRadius = 80 + (r / rings) * 600; 
          
-         let color = [227, 0, 63]; // Eneco Red default
-         const colorBand = Math.sin(r * 0.2 + d * 0.1);
-         if (colorBand > 0.3) {
-             color = [227, 0, 63]; // Red
-         } else if (colorBand < -0.3) {
-             color = [255, 112, 0]; // Orange
-         } else {
-             color = [255, 50, 0]; // Red-Orange blend
-         }
+         const color = [255, 255, 255];
          
          particles.push({ 
              baseRadius, 
@@ -120,20 +112,16 @@ export function SoundParticles({ intensity, isFilling = false }: { intensity: nu
 
            if (finalAlpha <= 0.01) continue;
 
-           // Houdini-style lighting: Fake ambient occlusion and directional light based on height (y3d)
-           const lightIntensity = Math.max(0, Math.min(1, 0.6 - (y3d / (amplitude || 1)) * 0.5));
-           // Darken deep crevices (ambient occlusion)
-           const ao = Math.max(0.3, 1.2 - Math.abs(wave1 * wave2)); 
-           
-           const r = Math.min(255, p.color[0] * lightIntensity * ao * 1.5);
-           const g = Math.min(255, p.color[1] * lightIntensity * ao * 1.5);
-           const b = Math.min(255, p.color[2] * lightIntensity * ao * 1.5);
+           // Depth shading via alpha only — keeps colors bright (no RGB darkening)
+           const ao = Math.max(0.3, 1.2 - Math.abs(wave1 * wave2));
+           const depthShade = Math.max(0, Math.min(1, 0.5 + (y3d / (amplitude || 1)) * 0.5));
+           const shadedAlpha = finalAlpha * ao * (0.4 + depthShade * 0.6);
 
            projected.push({
                z: z3d,
                px,
                py,
-               color: `rgba(${r|0}, ${g|0}, ${b|0}, ${finalAlpha})`,
+               color: `rgba(${p.color[0]}, ${p.color[1]}, ${p.color[2]}, ${shadedAlpha})`,
                size: Math.max(0.5, (1.8 + p.seedR * 1.8) * perspective) // Slightly varying sizes like granules
            });
        }

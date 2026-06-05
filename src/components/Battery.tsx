@@ -1,5 +1,7 @@
 import { motion } from 'motion/react';
 import { useEffect, useState, useRef } from 'react';
+import { FigmaBox } from './FigmaCanvas';
+import imgBattery from '../images/battery.png';
 
 // Custom Canvas-based Dense Glow Particles
 function PlasmaField({ level, intensity = 0, motion = 0, isSurging = false }: { level: number, intensity?: number, motion?: number, isSurging?: boolean }) {
@@ -22,11 +24,7 @@ function PlasmaField({ level, intensity = 0, motion = 0, isSurging = false }: { 
     // Optimal density for 3D particles matching outside style
     const pointsCount = 400;
     // Helper to interpolate battery color (Red -> Orange instead of Green)
-    const getInterpolatedColor = (lvl: number) => {
-        // Interpolate between Eneco Red (227, 0, 63) and Orange (255, 112, 0)
-        const t = Math.max(0, Math.min(100, lvl)) / 100;
-        return [227 + (255 - 227) * t, 0 + (112 - 0) * t, 63 + (0 - 63) * t];
-    };
+    const getInterpolatedColor = (_lvl: number) => [255, 255, 255];
 
     const particles = Array.from({ length: pointsCount }).map((_, i) => {
         return {
@@ -108,22 +106,19 @@ function PlasmaField({ level, intensity = 0, motion = 0, isSurging = false }: { 
                const alpha = Math.max(0, Math.min(1, edgeFade * (level/10)));
                
                if (alpha > 0.01) {
-                   // Ambient occlusion based on radius and depth inside the tube
-                   const ao = Math.max(0.35, 1 - (z3d + 1) * 0.35); // darker at the back
-                   const coreShadow = Math.max(0.6, p.radius); 
-                   const lightIntensity = isSurging ? (ao * coreShadow * 2.5 + 0.5) : (ao * coreShadow * 1.5);
-                   
+                   // Use alpha for depth shading instead of RGB multiplication
+                   // (RGB multiplication grays out bright/white colors)
+                   const ao = Math.max(0.35, 1 - (z3d + 1) * 0.35);
+                   const coreShadow = Math.max(0.6, p.radius);
+                   const depthAlpha = isSurging ? Math.min(1, ao * coreShadow * 2.0) : ao * coreShadow;
+
                    const effectiveLvl = Math.max(0, Math.min(100, level + (p.colorOffset || 0)));
                    const baseColor = isSurging ? [255, 255, 255] : getInterpolatedColor(effectiveLvl);
-                   
-                   const r = Math.min(255, baseColor[0] * lightIntensity);
-                   const g = Math.min(255, baseColor[1] * lightIntensity);
-                   const b = Math.min(255, baseColor[2] * lightIntensity);
 
                    projected.push({
                        z: z3d,
                        px, py, size,
-                       color: `rgba(${r|0}, ${g|0}, ${b|0}, ${alpha})`
+                       color: `rgba(${baseColor[0]|0}, ${baseColor[1]|0}, ${baseColor[2]|0}, ${alpha * depthAlpha})`
                    });
                }
            });
@@ -153,7 +148,8 @@ function PlasmaField({ level, intensity = 0, motion = 0, isSurging = false }: { 
   return (
     <canvas 
       ref={canvasRef} 
-      className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-100 transition-opacity duration-500" 
+      className="absolute inset-0 w-full h-full pointer-events-none mix-blend-normal opacity-100 transition-opacity duration-500" 
+      // className="absolute inset-0 w-full h-full pointer-events-none mix-blend-screen opacity-100 transition-opacity duration-500" 
     />
   );
 }
@@ -169,70 +165,90 @@ interface BatteryProps {
 export function Battery({ level, audioLevel = 0, motionLevel = 0, isSurging = false }: BatteryProps) {
   const clampedLevel = Math.max(0, Math.min(100, level));
   
-  const getOuterColors = (lvl: number) => {
-      if (lvl < 50) return { 
-          baseBg: 'linear-gradient(to right, rgba(227,0,63,0.5), rgba(40,0,10,0.3))', 
-          shadow: 'rgba(227,0,63,0.7)',
-          rgbStart: [227, 0, 63]
-      }; 
-      return { 
-          baseBg: 'linear-gradient(to right, rgba(255,112,0,0.5), rgba(40,15,0,0.3))', 
-          shadow: 'rgba(255,112,0,0.7)',
-          rgbStart: [255, 112, 0]
-      }; 
+  const getOuterColors = (_lvl: number) => {
+      // Brand color: #FFD87D — amber yellow
+      // Darker end: #FFA830 (deeper amber for gradient depth)
+      return {
+          baseBg: 'linear-gradient(to right, rgba(255,216,125,0.65), rgba(255,168,48,0.40))',
+          shadow: 'rgba(255,216,125,0.9)',
+          rgbStart: [255, 216, 125]
+      };
   };
   const colors = getOuterColors(clampedLevel);
 
-  return (
-    <div className="relative flex flex-row items-center justify-center w-full max-w-4xl">
-      
-      {/* Battery Body (Dark Glass) */}
-      <div className="h-48 md:h-72 w-full border-[4px] border-gray-800 rounded-[40px] p-2 bg-gray-950 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4),inset_0_0_20px_rgba(0,0,0,0.8)] backdrop-blur-2xl relative flex flex-row justify-start ring-2 ring-black/20 z-20">
-        
-        {/* Subtle glass reflection */}
-        <div className="absolute inset-0 rounded-[36px] bg-gradient-to-br from-white/5 via-transparent to-white/10 pointer-events-none z-20"></div>
-        <div className="absolute top-3 left-6 right-6 h-1.5 rounded-full bg-white/10 blur-[1px] pointer-events-none z-20"></div>
+  return ( <>
+    {/* Percentage Overlay */}
+    <FigmaBox x={192} y={100} w={1455} h={819} style={{fontSize: 242, fontWeight: 'bold', textAlign: "center", color: 'white'}}>
+      {Math.round(clampedLevel)}<span>%</span>
+    </FigmaBox>
 
-        <div className="relative w-full h-full rounded-[32px] overflow-hidden">
+    <FigmaBox x={192} y={126} w={1455} h={819}>
+      <img src={imgBattery} style={{
+        width: '100%', height: '100%', 
+        mixBlendMode: 'multiply'
+      }} />
+    </FigmaBox>
+
+      {/* Battery Body */}
+      <FigmaBox x={389} y={346} w={1099} h={388} className="rounded-[400px] p-2">
+
+        {/* Glow layer — outside overflow-hidden, filter isolated here */}
+        <div className="relative w-full h-full rounded-[400px] overflow-hidden"
+          style={{
+            position: 'absolute', top: 0, bottom: 0, left: 0,
+            borderRadius: 400,
+            filter: 'blur(10px)',
+            opacity: 1,
+          }}
+
+        >
+          <motion.div
+            style={{
+              position: 'absolute', top: 0, bottom: 0, left: 0,
+              borderRadius: 400,
+              background: colors.baseBg,
+              // background: 'white',
+              pointerEvents: 'none',
+            }}
+            animate={{ width: `${clampedLevel}%` }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.8 }}
+          />
+        </div>
+      
+        {/* Fill container — overflow-hidden, no filter */}
+        <div className="relative w-full h-full rounded-[400px] overflow-hidden">
           {/* The Fill */}
-          <motion.div 
-            className="absolute top-0 bottom-0 left-0 rounded-[32px] z-10 origin-left overflow-hidden shadow-inner border border-white/5"
+          <motion.div
+            className="absolute top-0 bottom-0 left-0 rounded-[400px] origin-left overflow-hidden border border-white/5"
             initial={{ width: '0%' }}
-            animate={{ 
+            animate={{
               width: `${clampedLevel}%`,
               background: colors.baseBg,
-              boxShadow: `10px 0 40px ${colors.shadow}, inset 20px 0 40px rgba(0,0,0,0.5)`
+              boxShadow: `0 0 40px ${colors.shadow}`
             }}
-            transition={{ 
+            transition={{
               width: { type: 'spring', bounce: 0, duration: 0.8 },
               background: { duration: 1 },
-              boxShadow: { duration: 1 }
             }}
             style={{ minWidth: clampedLevel > 0 ? '32px' : '0' }}
           >
             {/* Right Surface glowing edge */}
-            <motion.div 
-               className="absolute top-0 right-0 h-full w-8 opacity-60 blur-md pointer-events-none rounded-r-[32px] mix-blend-screen"
-               animate={{ backgroundColor: `rgb(${colors.rgbStart.join(',')})` }}
-               transition={{ duration: 1 }}
-            ></motion.div>
-            
+            <motion.div
+              className="absolute top-0 right-0 h-full w-8 opacity-60 blur-md pointer-events-none rounded-r-[32px] mix-blend-screen"
+              animate={{ backgroundColor: `rgb(${colors.rgbStart.join(',')})` }}
+              transition={{ duration: 1 }}
+            />
+
             {/* Volumetric 3D Plasma Field */}
             <PlasmaField level={clampedLevel} intensity={audioLevel} motion={motionLevel} isSurging={isSurging} />
-            
+
           </motion.div>
         </div>
-          
-        {/* Percentage Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none mix-blend-screen">
-          <span className="text-7xl font-black text-white/90 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] tracking-tighter">
-            {Math.round(clampedLevel)}<span className="text-3xl opacity-70 ml-1">%</span>
-          </span>
-        </div>
-      </div>
 
-      {/* Battery Cap */}
-      <div className="h-24 md:h-32 w-6 md:w-8 bg-gray-900 border-t border-b border-r border-gray-700 rounded-r-lg z-10 shadow-[inset_2px_0_4px_rgba(255,255,255,0.1)] -ml-1"></div>
-    </div>
+
+
+      </FigmaBox>
+
+  </>
   );
 }
