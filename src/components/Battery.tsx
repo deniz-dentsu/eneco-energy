@@ -178,7 +178,7 @@ export function Battery({ level, audioLevel = 0, motionLevel = 0, isSurging = fa
 
   return ( <>
     {/* Percentage Overlay */}
-    <FigmaBox x={192} y={100} w={1455} h={819} style={{fontSize: 242, fontWeight: 'bold', textAlign: "center", color: 'white'}}>
+    <FigmaBox x={192} y={30} w={1455} h={819} style={{fontSize: 350, fontWeight: 'bold', textAlign: "center", color: 'white', fontFamily: 'Etelka, sans-serif'}}>
       {Math.round(clampedLevel)}<span>%</span>
     </FigmaBox>
 

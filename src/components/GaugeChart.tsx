@@ -78,7 +78,7 @@ export function GaugeChart({ value }: GaugeChartProps) {
         fill="white"
         fontSize={36}
         fontWeight={700}
-        fontFamily="Inter, sans-serif"
+        fontFamily="Etelka, sans-serif"
       >
         {Math.round(clamped)}
       </text>

@@ -21,9 +21,9 @@ export default function App() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
   const { motionLevel, audioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
-  // const [batteryLevel, setBatteryLevel] = useState(0);
-  let [batteryLevel, setBatteryLevel] = useState(0); // tes
-  batteryLevel = 10; // test
+  const [batteryLevel, setBatteryLevel] = useState(0);
+  // let [batteryLevel, setBatteryLevel] = useState(0); // test
+  // batteryLevel = 100; // test
   const [isSurging, setIsSurging] = useState(false);
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
