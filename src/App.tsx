@@ -20,9 +20,69 @@ export default function App() {
   const [showCameraPanel, setShowCameraPanel] = useState(true);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
-  const { motionLevel, audioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
+  const { motionLevel: rawMotionLevel, audioLevel: rawAudioLevel, cameraActive, error, permissionState, stream } = useMotionDetection(audioDeviceId, videoDeviceId);
   const [batteryLevel, setBatteryLevel] = useState(0);
   const [isSurging, setIsSurging] = useState(false);
+
+  // Operator params (via BroadcastChannel — active only when operator window is open)
+  const [motionGain, setMotionGain] = useState(0.06);
+  const [audioGain, setAudioGain] = useState(0.06);
+  const [manualMotion, setManualMotion] = useState<number | null>(null);
+  const [manualAudio, setManualAudio] = useState<number | null>(null);
+
+  const motionLevel = manualMotion ?? rawMotionLevel;
+  const audioLevel = manualAudio ?? rawAudioLevel;
+
+  const motionGainRef = useRef(motionGain);
+  const audioGainRef = useRef(audioGain);
+  useEffect(() => { motionGainRef.current = motionGain; }, [motionGain]);
+  useEffect(() => { audioGainRef.current = audioGain; }, [audioGain]);
+
+  // Refs for values needed inside the BroadcastChannel interval (avoids stale closures)
+  const batteryLevelRef = useRef(batteryLevel);
+  const motionLevelRef2 = useRef(motionLevel);
+  const audioLevelRef2 = useRef(audioLevel);
+  useEffect(() => { batteryLevelRef.current = batteryLevel; }, [batteryLevel]);
+  useEffect(() => { motionLevelRef2.current = motionLevel; }, [motionLevel]);
+  useEffect(() => { audioLevelRef2.current = audioLevel; }, [audioLevel]);
+
+  // BroadcastChannel: created once, uses refs to avoid stale closures
+  useEffect(() => {
+    const ch = new BroadcastChannel('eneco-operator');
+    let lastPingAt = 0;
+
+    const resetOperator = () => {
+      setMotionGain(0.06);
+      setAudioGain(0.06);
+      setManualMotion(null);
+      setManualAudio(null);
+    };
+
+    ch.onmessage = (e) => {
+      if (e.data.type === 'ping') {
+        lastPingAt = Date.now();
+      } else if (e.data.type === 'params') {
+        setMotionGain(e.data.motionGain);
+        setAudioGain(e.data.audioGain);
+      } else if (e.data.type === 'manual') {
+        setManualMotion(e.data.motionLevel);
+        setManualAudio(e.data.audioLevel);
+      } else if (e.data.type === 'manual-off') {
+        setManualMotion(null);
+        setManualAudio(null);
+      }
+    };
+
+    const interval = setInterval(() => {
+      ch.postMessage({ type: 'state', batteryLevel: batteryLevelRef.current, motionLevel: motionLevelRef2.current, audioLevel: audioLevelRef2.current });
+      if (lastPingAt > 0 && Date.now() - lastPingAt > 1500) {
+        resetOperator();
+        lastPingAt = 0;
+      }
+    }, 100);
+
+    return () => { ch.close(); clearInterval(interval); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const isSurgingRef = useRef(false);
   const uiVideoRef = useRef<HTMLVideoElement>(null);
   const lastSurgeTimeRef = useRef(0);
@@ -68,42 +128,81 @@ export default function App() {
     motionLevelRef.current = motionLevel;
   }, [audioLevel, motionLevel]);
 
+  // Compute battery changes over time based on motion and audio
   useEffect(() => {
     let lastTime = performance.now();
-    let rafId: number;
+    let animationFrameId: number;
+
     const tick = (time: number) => {
-      const delta = (time - lastTime) / 1000;
+      const delta = (time - lastTime) / 1000; // seconds
       lastTime = time;
-      const cm = motionLevelRef.current;
-      const ca = audioLevelRef.current;
+
+      const currentMotionLevel = motionLevelRef.current;
+      const currentAudioLevel = audioLevelRef.current;
+
       setBatteryLevel(prev => {
-        if (isSurgingRef.current) return 100;
-        let drain = 5 * delta;
-        let gain = 0;
-        if (cm > 10 || ca > 10) {
-          gain = (cm * 0.04 + ca * 0.04 + Math.min(cm, ca) * 0.12) * delta;
-        } else {
-          gain = (cm * 0.01 + ca * 0.01) * delta;
+        if (isSurgingRef.current) {
+            // Keep at 100 during surge
+            return 100;
         }
+
+        // Base drain: lose 5% per second (faster drop)
+        let drain = 5 * delta;
+
+        let gain = 0;
+
+        // Requires more movement and audio to build up charge effectively
+        if (currentMotionLevel > 10 || currentAudioLevel > 10) {
+            let baseMotionGain = currentMotionLevel * motionGainRef.current;
+            let baseAudioGain = currentAudioLevel * audioGainRef.current;
+            // Synergy: rewarded for the lower of the two (encourages balance & crowd activity)
+            let synergyBonus = Math.min(currentMotionLevel, currentAudioLevel) * 0.12;
+
+            gain = (baseMotionGain + baseAudioGain + synergyBonus) * delta;
+        } else {
+            // Little activity barely moves the needle against the fast drain
+            let motionGain = currentMotionLevel * 0.01;
+            let audioGain = currentAudioLevel * 0.01;
+            gain = (motionGain + audioGain) * delta;
+        }
+
         return Math.min(100, Math.max(0, prev - drain + gain));
       });
-      rafId = requestAnimationFrame(tick);
+
+      animationFrameId = requestAnimationFrame(tick);
     };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
   const viewport = useCanvasViewport();
 
-  // Background: 0%=#EA714F(org), 50%=gradient(#E5384C→#EA714F), 100%=#E5384C(red)
-  const red = [229, 56, 76];
-  const org = [234, 113, 79];
+  // Background gradient shifts with battery level:
+  //   0%  → solid #EA714F (orange)
+  //   50% → linear-gradient(#E5384C → #EA714F)
+  //   100%→ solid #E5384C (red)
+  const RED = [229, 56, 76] as const;   // #E5384C
+  const ORANGE = [234, 113, 79] as const; // #EA714F
   const t = batteryLevel / 100;
-  const tL = Math.min(1, t * 2);
-  const tR = Math.max(0, t * 2 - 1);
-  const lc = (i: number) => (org[i] + (red[i] - org[i]) * tL) | 0;
-  const rc = (i: number) => (org[i] + (red[i] - org[i]) * tR) | 0;
-  const bgGradient = `linear-gradient(to right, rgb(${lc(0)},${lc(1)},${lc(2)}), rgb(${rc(0)},${rc(1)},${rc(2)}))`;
+
+  // Left color: orange→red over the first half (0–50%)
+  const tLeft = Math.min(1, t * 2);
+  const leftColor = `rgb(
+    ${Math.round(ORANGE[0] + (RED[0] - ORANGE[0]) * tLeft)},
+    ${Math.round(ORANGE[1] + (RED[1] - ORANGE[1]) * tLeft)},
+    ${Math.round(ORANGE[2] + (RED[2] - ORANGE[2]) * tLeft)}
+  )`;
+
+  // Right color: stays orange until 50%, then orange→red over the second half (50–100%)
+  const tRight = Math.max(0, t * 2 - 1);
+  const rightColor = `rgb(
+    ${Math.round(ORANGE[0] + (RED[0] - ORANGE[0]) * tRight)},
+    ${Math.round(ORANGE[1] + (RED[1] - ORANGE[1]) * tRight)},
+    ${Math.round(ORANGE[2] + (RED[2] - ORANGE[2]) * tRight)}
+  )`;
+
+  const bgGradient = `linear-gradient(to right, ${leftColor}, ${rightColor})`;
 
   return (
     <>
